@@ -1,0 +1,10 @@
+{
+  "Name": "Validate Purchases",
+  "Author": "Dausen Bugg",
+  "Version": "1.0.0",
+  "Description": "Players can now decide on purchases other players make.",
+  "UniqueID": "DausenBugg.ValidatePurchases",
+  "EntryDll": "StardewValley_Mod_ValidatePurchases.dll",
+  "MinimumApiVersion": "4.0.0",
+  "UpdateKeys": []
+}
