@@ -2,6 +2,6 @@
 {
     public class ModConfig
     {
-        public int MinimumPurchaseAmount { get; set; } = 26000;
+        public int MinimumPurchaseAmount { get; set; } = 9000;
     }
 }

@@ -73,7 +73,7 @@ namespace ValidatePurchases
             this.Monitor.Log($"Updated required validations: {requiredValidations}", LogLevel.Info);
         }
 
-        public void ValidatePurchase(int purchaseAmount, string displayName, Farmer who, ISalable salable, int countTaken)
+        public void ValidatePurchase(int purchaseAmount, string displayName, Farmer who, ISalable salable, int countTaken, ShopMenu shopMenu, int itemIndex)
         {
             this.Monitor.Log($"Validating purchase. Item: {displayName}, Amount: {purchaseAmount}, Minimum required: {Config.MinimumPurchaseAmount}", LogLevel.Info);
 
@@ -84,7 +84,9 @@ namespace ValidatePurchases
                 DisplayName = displayName,
                 Who = who,
                 Salable = salable,
-                CountTaken = countTaken
+                CountTaken = countTaken,
+                ShopMenu = shopMenu,
+                ItemIndex = itemIndex
             };
 
             this.Monitor.Log($"Pending purchase set: {this.pendingPurchase.DisplayName}, Amount: {this.pendingPurchase.PurchaseAmount}", LogLevel.Info);
@@ -177,11 +179,11 @@ namespace ValidatePurchases
 
             if (this.pendingPurchase != null)
             {
-                this.pendingPurchase.Who.Money -= this.pendingPurchase.PurchaseAmount;
-                this.pendingPurchase.Who.addItemByMenuIfNecessary((Item)this.pendingPurchase.Salable.GetSalableInstance());
+                // Execute the game's own onPurchase event
+                this.pendingPurchase.ShopMenu.receiveLeftClick(this.pendingPurchase.ItemIndex, 0, true);
                 this.pendingPurchase = null;
-                Game1.playSound("purchase"); // Play purchase sound effect
                 this.Monitor.Log("Purchase Succeeded.", LogLevel.Info);
+                this.Monitor.Log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", LogLevel.Info);
             }
 
             this.ResetValidations();
@@ -190,6 +192,7 @@ namespace ValidatePurchases
         private void DeclinePurchase()
         {
             this.Monitor.Log("Purchase declined.", LogLevel.Info);
+            this.Monitor.Log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", LogLevel.Info);
             this.ResetValidations();
         }
 
@@ -232,6 +235,8 @@ namespace ValidatePurchases
             public Farmer Who { get; set; } = null!;
             public ISalable Salable { get; set; } = null!;
             public int CountTaken { get; set; }
+            public ShopMenu ShopMenu { get; set; } = null!;
+            public int ItemIndex { get; set; }
         }
     }
 
