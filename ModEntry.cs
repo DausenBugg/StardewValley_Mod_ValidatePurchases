@@ -12,6 +12,7 @@ using StardewValley.Buildings;
 using StardewValley.GameData.Shops;
 using StardewValley.Menus;
 using StardewValley_Mod_ValidatePurchases;
+using ValidatePurchases;
 
 namespace ValidatePurchases
 {
@@ -98,6 +99,12 @@ namespace ValidatePurchases
             this.currentValidations = 0;
             this.validatedPlayers.Clear();
 
+            // Close the shop menu
+            Game1.activeClickableMenu = null;
+
+            // Show pending purchase dialog
+            this.ShowPendingPurchaseDialog();
+
             // Get all active player IDs
             var activePlayerIDs = Game1.getAllFarmers()
                 .Where(farmer => farmer.isActive())
@@ -118,6 +125,11 @@ namespace ValidatePurchases
 
             // Start validation timer
             this.StartValidationTimer();
+        }
+
+        private void ShowPendingPurchaseDialog()
+        {
+            Game1.activeClickableMenu = new LockedDialogueBox("Pending Purchase...");
         }
 
         private void OnModMessageReceived(object? sender, ModMessageReceivedEventArgs e)
@@ -194,6 +206,7 @@ namespace ValidatePurchases
             }
 
             this.ResetValidations();
+            Game1.activeClickableMenu = null; // Forcefully close the dialog box
         }
 
         private void DeclinePurchase()
@@ -201,6 +214,7 @@ namespace ValidatePurchases
             this.Monitor.Log("Purchase declined.", LogLevel.Info);
             this.Monitor.Log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", LogLevel.Info);
             this.ResetValidations();
+            Game1.activeClickableMenu = null; // Forcefully close the dialog box
         }
 
         private void ResetValidations()
@@ -263,4 +277,22 @@ namespace ValidatePurchases
         public int PurchaseAmount { get; set; }
         public string DisplayName { get; set; } = null!;
     }
+
+    public class LockedDialogueBox : DialogueBox
+    {
+        public LockedDialogueBox(string dialogue) : base(dialogue)
+        {
+        }
+
+        public override void receiveLeftClick(int x, int y, bool playSound = true)
+        {
+            // Override to prevent any actions on left click
+        }
+
+        public override void receiveRightClick(int x, int y, bool playSound = true)
+        {
+            // Override to prevent any actions on right click
+        }
+    }
+
 }
