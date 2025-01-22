@@ -98,7 +98,13 @@ namespace ValidatePurchases
             this.currentValidations = 0;
             this.validatedPlayers.Clear();
 
-            // Send purchase request to all players
+            // Get all active player IDs
+            var activePlayerIDs = Game1.getAllFarmers()
+                .Where(farmer => farmer.isActive())
+                .Select(farmer => farmer.UniqueMultiplayerID)
+                .ToArray();
+
+            // Send purchase request to all active players
             this.Helper.Multiplayer.SendMessage(
                 new PurchaseRequestMessage
                 {
@@ -106,7 +112,8 @@ namespace ValidatePurchases
                     DisplayName = displayName
                 },
                 "ShowValidationDialog",
-                new[] { this.ModManifest.UniqueID }
+                new[] { this.ModManifest.UniqueID },
+                activePlayerIDs
             );
 
             // Start validation timer
