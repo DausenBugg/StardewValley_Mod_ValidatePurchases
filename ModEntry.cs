@@ -13,6 +13,7 @@ using StardewValley.GameData.Shops;
 using StardewValley.Menus;
 using StardewValley_Mod_ValidatePurchases;
 using ValidatePurchases;
+using static ValidatePurchases.ShopMenuReceiveLeftClickPatch;
 
 namespace ValidatePurchases
 {
@@ -25,6 +26,7 @@ namespace ValidatePurchases
         private readonly List<Farmer> validatedPlayers = new();
         private PendingPurchase? pendingPurchase;
         private System.Timers.Timer? validationTimer;
+        public bool PurchaseApproved;
 
         public override void Entry(IModHelper helper)
         {
@@ -77,6 +79,8 @@ namespace ValidatePurchases
         public void ValidatePurchase(int purchaseAmount, string displayName, Farmer who, ISalable salable, int countTaken, ShopMenu shopMenu, int itemIndex)
         {
             this.Monitor.Log($"Validating purchase. Item: {displayName}, Amount: {purchaseAmount}, Minimum required: {Config.MinimumPurchaseAmount}", LogLevel.Info);
+
+            PurchaseApproved = false;
 
             // Store purchase details for later use
             this.pendingPurchase = new PendingPurchase
@@ -196,23 +200,24 @@ namespace ValidatePurchases
         {
             this.Monitor.Log("Purchase approved.", LogLevel.Info);
 
+            PurchaseApproved = true;
+
             if (this.pendingPurchase != null)
             {
                 // Execute the game's own onPurchase event
-                this.pendingPurchase.ShopMenu.receiveLeftClick(this.pendingPurchase.ItemIndex, 0, true);
-                this.pendingPurchase = null;
+                ShopMenuHelper.ReopenShopMenuAndClick();
                 this.Monitor.Log("Purchase Succeeded.", LogLevel.Info);
                 this.Monitor.Log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", LogLevel.Info);
             }
 
             this.ResetValidations();
-            Game1.activeClickableMenu = null; // Forcefully close the dialog box
         }
 
         private void DeclinePurchase()
         {
             this.Monitor.Log("Purchase declined.", LogLevel.Info);
             this.Monitor.Log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", LogLevel.Info);
+            PurchaseApproved = false;
             this.ResetValidations();
             Game1.activeClickableMenu = null; // Forcefully close the dialog box
         }
@@ -223,6 +228,7 @@ namespace ValidatePurchases
             this.requiredValidations = 0;
             this.validatedPlayers.Clear();
             this.StopValidationTimer();
+            this.pendingPurchase = null;
         }
 
         private void StartValidationTimer()
@@ -295,4 +301,26 @@ namespace ValidatePurchases
         }
     }
 
+    public static class ShopMenuHelper
+    {
+        public static void ReopenShopMenuAndClick()
+        {
+            Game1.activeClickableMenu = null; // Forcefully close the dialog box
+
+            if (ShopMenuState.LastShopMenu != null)
+            {
+                Game1.activeClickableMenu = ShopMenuState.LastShopMenu;
+
+                // Set the current item index to the stored value
+                ((ShopMenu)Game1.activeClickableMenu).currentItemIndex = ShopMenuState.CurrentItemIndex;
+
+                // Simulate the left click on the item
+                ((ShopMenu)Game1.activeClickableMenu).receiveLeftClick(
+                    ShopMenuState.ClickX,
+                    ShopMenuState.ClickY,
+                    true
+                );
+            }
+        }
+    }
 }
