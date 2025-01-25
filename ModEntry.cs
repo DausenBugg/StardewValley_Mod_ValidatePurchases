@@ -28,7 +28,6 @@ namespace ValidatePurchases
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.Multiplayer.ModMessageReceived += this.OnModMessageReceived;
             helper.Events.Multiplayer.PeerDisconnected += this.OnPeerDisconnected;
-            helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             this.Monitor.Log("Mod entry point initialized.", LogLevel.Info);
 
             var harmony = new Harmony(this.ModManifest.UniqueID);
@@ -36,13 +35,17 @@ namespace ValidatePurchases
             this.Monitor.Log("Harmony patch applied.", LogLevel.Info);
         }
 
-        private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
+        private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
         {
+            this.Monitor.Log("Save loaded event triggered.", LogLevel.Info);
+
             // Register the config menu if the player is the host
             if (Context.IsMainPlayer)
             {
                 this.RegisterConfigMenu();
             }
+
+            this.Helper.Events.Display.MenuChanged += this.OnMenuChanged;
         }
 
         private void RegisterConfigMenu()
@@ -63,8 +66,8 @@ namespace ValidatePurchases
 
             configMenu.AddNumberOption(
                 mod: this.ModManifest,
-                getValue: () => this.Config.MinimumPurchaseAmount,
-                setValue: value => this.Config.MinimumPurchaseAmount = value,
+                getValue: () => this.Config.MaximumPurchaseAmount,
+                setValue: value => this.Config.MaximumPurchaseAmount = value,
                 name: () => "Minimum Purchase Amount",
                 tooltip: () => "The minimum amount required for a purchase to be validated.",
                 min: -1,
@@ -77,16 +80,10 @@ namespace ValidatePurchases
         private void BroadcastConfigChanges()
         {
             this.Helper.Multiplayer.SendMessage(
-                new ConfigUpdateMessage { MinimumPurchaseAmount = this.Config.MinimumPurchaseAmount },
+                new ConfigUpdateMessage { MinimumPurchaseAmount = this.Config.MaximumPurchaseAmount },
                 "ConfigUpdate",
                 new[] { this.ModManifest.UniqueID }
             );
-        }
-
-        private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
-        {
-            this.Monitor.Log("Save loaded event triggered.", LogLevel.Info);
-            this.Helper.Events.Display.MenuChanged += this.OnMenuChanged;
         }
 
         private void OnMenuChanged(object? sender, MenuChangedEventArgs e)
@@ -119,7 +116,7 @@ namespace ValidatePurchases
 
         public void ValidatePurchase(int purchaseAmount, string displayName, Farmer who, ISalable salable, int countTaken, ShopMenu shopMenu, int itemIndex)
         {
-            this.Monitor.Log($"Validating purchase. Item: {displayName}, Amount: {purchaseAmount}, Minimum required: {Config.MinimumPurchaseAmount}", LogLevel.Info);
+            this.Monitor.Log($"Validating purchase. Item: {displayName}, Amount: {purchaseAmount}, Minimum required: {Config.MaximumPurchaseAmount}", LogLevel.Info);
 
             PurchaseApproved = false;
 
@@ -195,8 +192,8 @@ namespace ValidatePurchases
             {
                 this.Monitor.Log("Received ConfigUpdate message.", LogLevel.Info);
                 var message = e.ReadAs<ConfigUpdateMessage>();
-                this.Config.MinimumPurchaseAmount = message.MinimumPurchaseAmount;
-                this.Monitor.Log($"Updated MinimumPurchaseAmount to {this.Config.MinimumPurchaseAmount}", LogLevel.Info);
+                this.Config.MaximumPurchaseAmount = message.MinimumPurchaseAmount;
+                this.Monitor.Log($"Updated MinimumPurchaseAmount to {this.Config.MaximumPurchaseAmount}", LogLevel.Info);
             }
         }
 

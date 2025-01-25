@@ -23,7 +23,7 @@ namespace ValidatePurchases
                     ModEntry.Instance.Monitor.Log($">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", LogLevel.Info);
                     ModEntry.Instance.Monitor.Log($"Intercepted purchase event. Item: {salable.DisplayName}, Amount: {purchaseAmount}", LogLevel.Info);
 
-                    if (ModEntry.Instance.Config.MinimumPurchaseAmount == -1)
+                    if (ModEntry.Instance.Config.MaximumPurchaseAmount == -1)
                     {
                         return true;
                     }
@@ -34,7 +34,7 @@ namespace ValidatePurchases
                         return true;
                     }
 
-                    if (purchaseAmount >= ModEntry.Instance.Config.MinimumPurchaseAmount)
+                    if (purchaseAmount >= ModEntry.Instance.Config.MaximumPurchaseAmount)
                     {
                         // Store the state before closing the shop
                         ShopMenuState.StoreState(__instance, actualIndex, x, y);
