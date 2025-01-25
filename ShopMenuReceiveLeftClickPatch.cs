@@ -23,6 +23,11 @@ namespace ValidatePurchases
                     ModEntry.Instance.Monitor.Log($">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>", LogLevel.Info);
                     ModEntry.Instance.Monitor.Log($"Intercepted purchase event. Item: {salable.DisplayName}, Amount: {purchaseAmount}", LogLevel.Info);
 
+                    if (ModEntry.Instance.Config.MinimumPurchaseAmount == -1)
+                    {
+                        return true;
+                    }
+
                     if (ModEntry.Instance.PurchaseApproved)
                     {
                         ModEntry.Instance.PurchaseApproved = false;

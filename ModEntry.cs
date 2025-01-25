@@ -1,19 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Timers;
+﻿using System.Timers;
 using HarmonyLib;
-using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
-using StardewModdingAPI.Utilities;
 using StardewValley;
-using StardewValley.Buildings;
-using StardewValley.GameData.Shops;
 using StardewValley.Menus;
 using StardewValley_Mod_ValidatePurchases;
-using ValidatePurchases;
 using static ValidatePurchases.ShopMenuReceiveLeftClickPatch;
+using GenericModConfigMenu;
 
 namespace ValidatePurchases
 {
@@ -35,11 +28,59 @@ namespace ValidatePurchases
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
             helper.Events.Multiplayer.ModMessageReceived += this.OnModMessageReceived;
             helper.Events.Multiplayer.PeerDisconnected += this.OnPeerDisconnected;
+            helper.Events.GameLoop.GameLaunched += this.OnGameLaunched;
             this.Monitor.Log("Mod entry point initialized.", LogLevel.Info);
 
             var harmony = new Harmony(this.ModManifest.UniqueID);
             harmony.PatchAll();
             this.Monitor.Log("Harmony patch applied.", LogLevel.Info);
+        }
+
+        private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
+        {
+            // Register the config menu if the player is the host
+            if (Context.IsMainPlayer)
+            {
+                this.RegisterConfigMenu();
+            }
+        }
+
+        private void RegisterConfigMenu()
+        {
+            var configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            if (configMenu == null)
+                return;
+
+            configMenu.Register(
+                mod: this.ModManifest,
+                reset: () => this.Config = new ModConfig(),
+                save: () =>
+                {
+                    this.Helper.WriteConfig(this.Config);
+                    this.BroadcastConfigChanges();
+                }
+            );
+
+            configMenu.AddNumberOption(
+                mod: this.ModManifest,
+                getValue: () => this.Config.MinimumPurchaseAmount,
+                setValue: value => this.Config.MinimumPurchaseAmount = value,
+                name: () => "Minimum Purchase Amount",
+                tooltip: () => "The minimum amount required for a purchase to be validated.",
+                min: -1,
+                max: 100000,
+                interval: 1
+            );
+            this.Monitor.Log("Minimum Amount added to config menu", LogLevel.Info);
+        }
+
+        private void BroadcastConfigChanges()
+        {
+            this.Helper.Multiplayer.SendMessage(
+                new ConfigUpdateMessage { MinimumPurchaseAmount = this.Config.MinimumPurchaseAmount },
+                "ConfigUpdate",
+                new[] { this.ModManifest.UniqueID }
+            );
         }
 
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -149,6 +190,13 @@ namespace ValidatePurchases
                 this.Monitor.Log("Received PurchaseResponse message.", LogLevel.Info);
                 var message = e.ReadAs<PurchaseResponseMessage>();
                 this.HandlePurchaseResponse(message.IsApproved);
+            }
+            else if (e.Type == "ConfigUpdate" && e.FromModID == this.ModManifest.UniqueID)
+            {
+                this.Monitor.Log("Received ConfigUpdate message.", LogLevel.Info);
+                var message = e.ReadAs<ConfigUpdateMessage>();
+                this.Config.MinimumPurchaseAmount = message.MinimumPurchaseAmount;
+                this.Monitor.Log($"Updated MinimumPurchaseAmount to {this.Config.MinimumPurchaseAmount}", LogLevel.Info);
             }
         }
 
@@ -278,10 +326,9 @@ namespace ValidatePurchases
         public bool IsApproved { get; set; }
     }
 
-    internal class ApprovalMessage
+    internal class ConfigUpdateMessage
     {
-        public int PurchaseAmount { get; set; }
-        public string DisplayName { get; set; } = null!;
+        public int MinimumPurchaseAmount { get; set; }
     }
 
     public class LockedDialogueBox : DialogueBox
