@@ -175,7 +175,8 @@ namespace ValidatePurchases
                 new PurchaseRequestMessage
                 {
                     PurchaseAmount = purchaseAmount,
-                    DisplayName = displayName
+                    DisplayName = displayName,
+                    RequesterId = who.UniqueMultiplayerID
                 },
                 "ShowValidationDialog",
                 new[] { this.ModManifest.UniqueID },
@@ -197,7 +198,7 @@ namespace ValidatePurchases
             {
                 this.Monitor.Log("Received ShowValidationDialog message.", LogLevel.Info);
                 var message = e.ReadAs<PurchaseRequestMessage>();
-                this.ShowValidationDialog(message.PurchaseAmount, message.DisplayName);
+                this.ShowValidationDialog(message.PurchaseAmount, message.DisplayName, message.RequesterId);
             }
             else if (e.Type == "PurchaseResponse" && e.FromModID == this.ModManifest.UniqueID)
             {
@@ -214,7 +215,7 @@ namespace ValidatePurchases
             }
         }
 
-        private void ShowValidationDialog(int purchaseAmount, string displayName)
+        private void ShowValidationDialog(int purchaseAmount, string displayName, long requesterId)
         {
             this.Monitor.Log($"Showing validation dialog for purchase amount: {purchaseAmount}, Item: {displayName}", LogLevel.Info);
 
@@ -225,13 +226,13 @@ namespace ValidatePurchases
             };
 
             Game1.currentLocation.createQuestionDialogue(
-                $"A player wants to make a purchase of {purchaseAmount} gold for {displayName}. Do you approve?",
-                choices.ToArray(),
-                new GameLocation.afterQuestionBehavior(this.OnValidationResponse)
-            );
+               $"A player wants to make a purchase of {purchaseAmount} gold for {displayName}. Do you approve?",
+               choices.ToArray(),
+               (who, response) => this.OnValidationResponse(who, response, requesterId)
+           );
         }
 
-        private void OnValidationResponse(Farmer who, string response)
+        private void OnValidationResponse(Farmer who, string response, long requesterId)
         {
             this.Monitor.Log($"Validation response received. Response: {response}", LogLevel.Info);
 
@@ -240,7 +241,7 @@ namespace ValidatePurchases
                 new PurchaseResponseMessage { IsApproved = isApproved },
                 "PurchaseResponse",
                 new[] { this.ModManifest.UniqueID },
-                new[] { this.pendingPurchase?.Who.UniqueMultiplayerID ?? 0 }
+                new[] { requesterId }
             );
         }
 
@@ -333,6 +334,7 @@ namespace ValidatePurchases
     {
         public int PurchaseAmount { get; set; }
         public string DisplayName { get; set; } = null!;
+        public long RequesterId { get; set; }
     }
 
     internal class PurchaseResponseMessage
