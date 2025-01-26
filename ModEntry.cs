@@ -26,6 +26,7 @@ namespace ValidatePurchases
             Instance = this;
             this.Config = helper.ReadConfig<ModConfig>();
             helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
+            helper.Events.GameLoop.ReturnedToTitle += this.OnReturnedToTitle;
             helper.Events.Multiplayer.ModMessageReceived += this.OnModMessageReceived;
             helper.Events.Multiplayer.PeerDisconnected += this.OnPeerDisconnected;
             this.Monitor.Log("Mod entry point initialized.", LogLevel.Info);
@@ -33,6 +34,22 @@ namespace ValidatePurchases
             var harmony = new Harmony(this.ModManifest.UniqueID);
             harmony.PatchAll();
             this.Monitor.Log("Harmony patch applied.", LogLevel.Info);
+        }
+
+        private void OnReturnedToTitle(object? sender, ReturnedToTitleEventArgs e)
+        {
+            this.Monitor.Log("Returned to title. Unregistering config menu.", LogLevel.Info);
+            this.UnregisterConfigMenu();
+        }
+
+        private void UnregisterConfigMenu()
+        {
+            var configMenu = this.Helper.ModRegistry.GetApi<IGenericModConfigMenuApi>("spacechase0.GenericModConfigMenu");
+            if (configMenu == null)
+                return;
+
+            configMenu.Unregister(this.ModManifest);
+            this.Monitor.Log("Config menu unregistered.", LogLevel.Info);
         }
 
         private void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -68,13 +85,13 @@ namespace ValidatePurchases
                 mod: this.ModManifest,
                 getValue: () => this.Config.MaximumPurchaseAmount,
                 setValue: value => this.Config.MaximumPurchaseAmount = value,
-                name: () => "Minimum Purchase Amount",
-                tooltip: () => "The minimum amount required for a purchase to be validated.",
+                name: () => "Maximum Purchase Amount",
+                tooltip: () => "The maximum amount required for a purchase to be validated.",
                 min: -1,
                 max: 100000,
                 interval: 1
             );
-            this.Monitor.Log("Minimum Amount added to config menu", LogLevel.Info);
+            this.Monitor.Log("Maximum Amount added to config menu", LogLevel.Info);
         }
 
         private void BroadcastConfigChanges()

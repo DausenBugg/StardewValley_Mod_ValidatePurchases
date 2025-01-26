@@ -25,5 +25,9 @@ namespace GenericModConfigMenu
         /// <param name="max">The maximum allowed value, or <c>null</c> to allow any.</param>
         /// <param name="interval">The interval of values that can be selected.</param>
         void AddNumberOption(IManifest mod, Func<int> getValue, Action<int> setValue, Func<string> name, Func<string> tooltip = null, int? min = null, int? max = null, int? interval = null, Func<int, string> formatValue = null, string fieldId = null);
+
+        /// <summary>Remove a mod from the config UI and delete all its options and pages.</summary>
+        /// <param name="mod">The mod's manifest.</param>
+        void Unregister(IManifest mod);
     }
 }
